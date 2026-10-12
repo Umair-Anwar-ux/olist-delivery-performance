@@ -1,116 +1,120 @@
 # Methodology
 
-This page records every definition, cleaning decision and exclusion used in the analysis, with its effect on row counts.
-Each number is reproduced by the SQL files and saved in [reports/sql_results/](../reports/sql_results/).
+This page records the definitions, cleaning decisions and exclusions used in the analysis, and how each one affects the row counts. Every number here is produced by the SQL files, and the query results are saved in [reports/sql_results](../reports/sql_results/).
 
 ## 1. Pipeline
 
 ```
-data/raw/*.csv  (never modified)
-   │  sql/01_create_schema.sql      typed staging tables raw_*
-   │  sql/02_load_and_validate.sql  @load CSV -> raw_* (Python csv module), key indexes,
-   │                                row counts, stored types, keys, FK coverage, timestamp checks
-   ▼
-raw_*  (9 tables, exact copies of the CSVs)          data/processed/olist.db (SQLite)
-   │  sql/03_transform.sql          dimensions, facts, bridges + post-join checks
-   ▼
-fct_* / dim_* / bridges (star schema) ─► sql/04_business_analysis.sql  (Q1–Q9)
-   │                                   ─► sql/05_headline_metrics.sql  (reconciliation targets)
-   │                                   ─► notebooks/01_delivery_and_reviews.ipynb (independent validation + EDA)
-   ▼
-data/processed/*.csv  ─► Power BI semantic model (powerbi/pbip -> powerbi/delivery_reviews.pbix)
+data/raw/*.csv                       original files, never modified
+  sql/01_create_schema.sql           typed staging tables (raw_*)
+  sql/02_load_and_validate.sql       load the CSVs, add key indexes, run data checks
+raw_* tables                         exact copies of the 9 CSVs, in data/processed/olist.db
+  sql/03_transform.sql               dimensions, fact tables, bridge tables, post-join checks
+fct_* and dim_* tables               the star schema used for analysis
+  sql/04_business_analysis.sql       business questions Q1 to Q9
+  sql/05_headline_metrics.sql        key numbers used to cross-check the notebook and Power BI
+  notebooks/01_delivery_and_reviews  independent pandas check and exploration
+data/processed/*.csv                 exported tables loaded by the Power BI report
 ```
 
-`scripts/build_database.py` uses only Python's standard library (`sqlite3`, `csv`, `json`). It recreates `data/processed/olist.db` and runs the five SQL files in order (about 3–4 minutes). **The build stops if any `@check` fails.** Checks cover raw row counts, stored types and timestamp formats, key uniqueness, referential integrity, row counts preserved through joins, BRL totals preserved after aggregation, and region mapping. It then compares the headline metrics with the validated baseline (§8) and exports the model tables to CSV for Power BI.
+`scripts/build_database.py` uses only Python's standard library (sqlite3, csv and json). It recreates `data/processed/olist.db`, runs the five SQL files in order (about 3 to 4 minutes), and stops if any check fails. The checks cover raw row counts, stored data types and timestamp formats, unique keys, links between tables, row counts kept through joins, money totals kept after aggregation, and the state-to-region mapping. It then compares the key numbers with the earlier validated results (section 8) and exports the analysis tables to CSV for Power BI.
 
-**Engine: SQLite.** SQLite runs inside Python with no server, credentials or extra driver. It has no schemas, so the layers are separated by name: `raw_*` for staging, and `fct_*`, `dim_*`, `stg_*` and the bridges for the analysis layer. Other SQLite specifics:
-* SQLite has no `COPY`. The `-- @load:` steps in `02_load_and_validate.sql` are executed by the runner, which streams each CSV into its table (empty cell → NULL; the header must match the table's columns; the translation file's byte-order mark is stripped).
-* Types are dynamic, so `02` checks that every value landed with its declared type and that every timestamp has the exact `YYYY-MM-DD HH:MM:SS` shape. ISO text then compares chronologically, and `date()`, `strftime()` and `unixepoch()` work on it.
-* Flags are INTEGER 1/0 (NULL = not applicable). Durations are `unixepoch()` differences in whole seconds, then `/ 86400.0`.
-* There is no `MEDIAN` or `PERCENTILE_CONT`. Percentiles are computed in SQL with `ROW_NUMBER()`/`COUNT()` windows using linear interpolation: position = p·(n−1), value = v[floor] + fraction·(v[floor+1] − v[floor]). That is the same definition as `PERCENTILE_CONT`, pandas' default quantile and DAX `MEDIAN`/`PERCENTILEX.INC`.
-* Rankings `ORDER BY` the unrounded metric plus an ID tie-breaker, so equal displayed values sort deterministically and in true order.
+### Why SQLite, and what that changes
 
-## 2. Grain discipline
+SQLite runs inside Python with no server, password or extra driver, so anyone can rebuild the database with one command. It has a few differences from larger databases that shaped the SQL:
 
-* `orders` is the order grain. `order_items`, `order_payments` and `order_reviews` are one-to-many to orders.
-* A naive `orders × items` join produces 113,425 rows for 99,441 orders (+13,984 duplicate order rows). The notebook demonstrates this.
-* Rule applied: **aggregate each one-to-many table to `order_id` first, then join** (`items_per_order`, `payments_per_order`, `stg_order_review`). Checks confirm `fct_orders` has exactly 99,441 rows, and that Σ item value (R$ 15,843,553.24) and Σ payments (R$ 16,008,872.12) are unchanged.
-* Seller and category metrics use bridge tables at (order, seller) and (order, category) grain, because the delivery date exists only at order level. 1,278 orders (1.3%) have more than one seller and 786 (0.8%) more than one category. Those orders count once in each group, and the order's single delivery outcome applies to all of them.
-* Shipping lanes (seller state → customer state) use one row per (order, lane): an order shipped by two sellers from the same state counts once in that lane. The Power BI `Lane` column uses the same definition.
-* In Power BI, order measures count rows of `fct_orders`. Item and category filters reach it through a bidirectional `fct_orders ↔ fct_order_items` relationship, so orders are never double-counted.
+- There are no schemas, so the two layers are separated by name: `raw_*` for the staging tables, and `fct_*`, `dim_*`, `stg_*` and the bridge tables for the analysis layer.
+- There is no bulk CSV load command. The `-- @load:` lines in `02_load_and_validate.sql` are carried out by the Python script, which reads each CSV and inserts it into its table. Empty cells become NULL, the file header must match the table's columns, and the byte-order mark at the start of the category translation file is removed.
+- Column types are not enforced, so `02` checks that every value was stored with the expected type and that every timestamp has the exact `YYYY-MM-DD HH:MM:SS` format. Timestamps stored that way sort correctly as text and work with SQLite's date functions.
+- Yes/no flags are stored as 1 or 0, with NULL meaning "not applicable". Time differences are calculated in whole seconds with `unixepoch()` and then divided into days or hours.
+- There is no median function. Medians and other percentiles are calculated with window functions using linear interpolation, which is the same method used by pandas, PERCENTILE_CONT in other databases, and MEDIAN in Power BI.
+- Rankings are sorted on the exact, unrounded value with an ID as a tie-breaker, so rows that look equal after rounding still appear in their true order.
+
+## 2. Avoiding double counting
+
+- The orders table has one row per order. Order items, payments and reviews can each have several rows per order.
+- Joining orders directly to items gives 113,425 rows for 99,441 orders, so 13,984 orders would be counted more than once. The notebook shows this.
+- To avoid that, items, payments and reviews are each summarised to one row per order before they are joined. The build confirms that `fct_orders` has exactly 99,441 rows and that the total item value (R$ 15,843,553.24) and total payments (R$ 16,008,872.12) don't change.
+- Seller and category figures use bridge tables with one row per order and seller, and one row per order and category, because the delivery date only exists at order level. 1,278 orders (1.3%) have more than one seller and 786 (0.8%) have more than one category. These orders count once in each group, and every group gets the same delivery result for that order.
+- Shipping routes (seller state to customer state) use one row per order and route, so an order shipped by two sellers from the same state counts once on that route. The Power BI `Lane` column works the same way.
+- In Power BI, order measures count rows of `fct_orders`. Filters on items, categories and sellers reach it through a two-way relationship between orders and items, so an order is never counted twice.
 
 ## 3. Metric definitions
 
-| Metric | Grain | Numerator | Denominator / population | Notes |
+| Metric | Counted per | Numerator | Denominator or population | Notes |
 |---|---|---|---|---|
-| Delivery-KPI population | order | n/a | status = `delivered` **and** delivery timestamp present: **96,470** | 2,971 orders excluded (see §4) |
-| Late-delivery rate (primary) | order | delivery **date** > estimated **date** | delivery-KPI orders | 6,534 / 96,470 = 6.77% |
-| Late-delivery rate (sensitivity) | order | delivery timestamp > estimated timestamp | delivery-KPI orders | 7,826 / 96,470 = 8.11% |
-| Lifecycle stage duration | order | timestamp difference | delivery-KPI orders whose two stage timestamps exist and are in order | median, p75, p90 reported; means are skewed |
-| Average review score | order | Σ score | delivery-KPI orders with a review | one review per order |
-| Canceled / unavailable share | order | status canceled or unavailable | **all** orders | 1,234 / 99,441 = 1.24% |
-| Order value (BRL) | order | Σ price + Σ freight | delivered orders | gross merchandise value, **not profit or Olist revenue** |
-| Excess late orders | group | late orders − delivered orders × marketplace late rate | groups above a minimum volume | combines rate and volume for prioritisation |
-| Wilson lower bound | group | 95% lower confidence bound of the late rate | groups above a minimum volume | conservative rate that penalises small samples |
-| Carrier hand-off late | order | carrier date > latest item `shipping_limit_date` | delivery-KPI orders with a carrier date | seller-side signal |
+| Delivered orders (delivery metrics) | order | | status is delivered and a delivery timestamp exists: 96,470 | 2,971 orders left out (section 4) |
+| Late-delivery rate | order | delivery date later than the promised date | delivered orders | 6,534 / 96,470 = 6.77% |
+| Late-delivery rate, timestamp version | order | delivery timestamp later than the promised timestamp | delivered orders | 7,826 / 96,470 = 8.11% |
+| Time per step | order | difference between the two timestamps | delivered orders where both timestamps exist and are in order | medians, 75th and 90th percentiles reported, because averages are skewed |
+| Average review score | order | sum of scores | delivered orders with a review | one review per order |
+| Canceled or unavailable share | order | status canceled or unavailable | all orders | 1,234 / 99,441 = 1.24% |
+| Order value (BRL) | order | item price plus shipping | delivered orders | total sales value, not profit and not Olist's revenue |
+| Excess late orders | group | late orders minus (delivered orders x marketplace late rate) | groups above a minimum size | combines rate and volume to set priorities |
+| Wilson lower bound | group | lower end of the 95% confidence interval of the late rate | groups above a minimum size | a cautious rate that penalises small samples |
+| Late handover to carrier | order | carrier pickup after the latest item shipping deadline | delivered orders with a pickup date | a sign of seller-side delay |
 
-### Why the late definition was adapted
-The brief defines late as *"actual customer delivery timestamp later than estimated delivery timestamp."* In the actual file, **every one of the 99,441 estimated delivery values is at 00:00:00**, so it is a date. A literal timestamp comparison marks an order delivered at 15:00 on the promised day as late, which affects 1,292 orders. The primary metric therefore compares calendar dates. The literal rule is kept as `is_late_timestamp_rule` and reported alongside (8.11% vs 6.77%). Conclusions don't change under either rule.
+### Why the late-delivery definition was adapted
 
-## 4. Exclusions by KPI
+The project brief defines late as the delivery timestamp being later than the estimated delivery timestamp. In the data, all 99,441 estimated delivery values are at exactly midnight, so the estimate is really a date. A timestamp comparison would count an order delivered at 3pm on the promised day as late, which affects 1,292 orders. The main metric therefore compares calendar dates. The timestamp version is kept as `is_late_timestamp_rule` and reported next to it (8.11% against 6.77%). The conclusions are the same under both.
 
-| KPI | Included | Excluded | Reason |
+## 4. What each metric leaves out
+
+| Metric | Included | Excluded | Reason |
 |---|---:|---:|---|
-| Late rate, delivery durations | 96,470 | 1,107 shipped · 625 canceled · 609 unavailable · 314 invoiced · 301 processing · 5 created · 2 approved · **8 delivered without a delivery date** | not delivered, or no delivery timestamp |
-| Purchase → approval | 96,456 | 14 | approval timestamp missing |
-| Approval → carrier | 95,105 | 1,365 | approval timestamp missing (14), carrier timestamp missing (1), or carrier earlier than approval (1,350) |
-| Carrier → customer | 96,446 | 24 | carrier timestamp missing (1) or delivery earlier than carrier hand-off (23) |
-| All three stages valid | 95,082 | 1,388 | union of the above |
-| Review comparisons | 95,824 | 646 | delivered orders without a review |
-| Monthly trends | Jan-2017 → Aug-2018 | 329 orders before 2017, 20 orders from Sep-2018 | partial or sparse months |
+| Late rate and delivery times | 96,470 | 1,107 shipped, 625 canceled, 609 unavailable, 314 invoiced, 301 processing, 5 created, 2 approved, and 8 delivered orders with no delivery date | not delivered, or no delivery timestamp |
+| Purchase to payment approval | 96,456 | 14 | approval timestamp missing |
+| Approval to carrier pickup | 95,105 | 1,365 | approval missing (14), pickup missing (1), or pickup before approval (1,350) |
+| Carrier pickup to delivery | 96,446 | 24 | pickup missing (1) or delivery before pickup (23) |
+| All three steps valid | 95,082 | 1,388 | any of the above |
+| Review comparisons | 95,824 | 646 | delivered orders with no review |
+| Monthly trends | January 2017 to August 2018 | 329 orders before 2017, 20 orders from September 2018 | incomplete or very small months |
 
-## 5. Cleaning decisions and their effect on rows
+## 5. Cleaning decisions
 
 | # | Decision | Effect |
 |---|---|---|
-| 1 | Raw files loaded unchanged; cleaning happens only in the analysis tables (`fct_*`, `dim_*`) | 0 rows altered in `raw_*` |
-| 2 | Keep all orders in `fct_orders`, use flags instead of deleting rows | 99,441 → 99,441 |
-| 3 | One review per order: most recently answered | 99,224 review rows → 98,673 orders (551 surplus rows dropped from the review stage only) |
-| 4 | NULL category → `unknown`; 2 untranslated categories translated manually | 610 + 13 products relabelled |
-| 5 | Out-of-order stage timestamps → that stage NULL (order kept) | see §4 |
-| 6 | `canceled` orders with a delivery date stay canceled | 6 orders excluded from delivery KPIs |
-| 7 | Geolocation table not used (many-to-many on zip prefix, duplicates, coordinates outside Brazil) | n/a; state from `customers` is enough |
-| 8 | State → macro-region mapping added (IBGE regions) | 27/27 customer states and 23/23 seller states mapped |
+| 1 | Raw files are loaded unchanged; all cleaning happens in the analysis tables | no rows changed in `raw_*` |
+| 2 | Every order is kept in `fct_orders`, and flags decide which metrics it counts towards | 99,441 orders in, 99,441 out |
+| 3 | One review per order, the most recently answered one | 99,224 review rows become 98,673 reviewed orders |
+| 4 | Missing categories become `unknown`; 2 categories missing from the translation file were translated by hand | 610 and 13 products relabelled |
+| 5 | A step with timestamps in the wrong order is left blank, but the order is kept | see section 4 |
+| 6 | Canceled orders that have a delivery date stay canceled | 6 orders left out of delivery metrics |
+| 7 | The geolocation file is not used (many rows per zip code, duplicates, some coordinates outside Brazil) | the customer's state is enough |
+| 8 | States are mapped to Brazil's five official regions | all 27 customer states and 23 seller states mapped |
 
-## 6. Small-sample handling
-* Every rate is reported with its denominator.
-* States with fewer than 300 delivered orders are flagged. Category rankings require ≥ 500 delivered orders. Seller rankings require ≥ 100 delivered orders.
-* Seller and category "consistency" means the group's late rate exceeded the marketplace rate in at least 60% of quarters where it had ≥ 10 orders, with a minimum of 3 such quarters.
-* The notebook's funnel plot shows that a naive top-10 seller list by late rate is made up entirely of sellers with fewer than 10 orders.
+## 6. Small samples
 
-## 7. Interpretation rules and limitations
-* **Association, not causation.** Late orders differ from on-time orders in region, category, seller and season. The review gap is shown within each region and under several exclusions, but no causal design is possible here.
-* **Survey timing.** 74.5% of reviews on late orders were created *before* the order was delivered, so the survey appears to be sent around the estimated date. The −2.0-point gap falls to −0.77 when only post-delivery reviews are compared (n = 1,630 late orders).
-* **Right-censoring.** Orders still in transit at the data cut-off (1,107 `shipped`) are excluded. They are probably late more often than average, so the last few months may understate lateness.
-* **No carrier identity.** Carrier-stage delays can be located by lane (seller state → customer state) but can't be attributed to a specific logistics provider.
-* **Seller attribution.** Delivery outcomes are order-level. In the 1.3% of multi-seller orders, every seller gets the same outcome.
-* **No cost or profit data.** Order value is gross merchandise value (items + freight) in BRL.
+- Every rate is shown with the number of orders behind it.
+- States with fewer than 300 delivered orders are flagged. Category rankings need at least 500 delivered orders and seller rankings at least 100.
+- A seller or category counts as "consistently" late if its late rate was above the marketplace rate in at least 60% of the quarters where it had 10 or more orders, with at least 3 such quarters.
+- The notebook's funnel chart shows that a simple top-10 list of sellers by late rate is made up entirely of sellers with fewer than 10 orders.
 
-## 8. SQLite migration and reconciliation record
+## 7. How to read the results
 
-The analysis was first built on DuckDB, then moved to SQLite. Before migrating, the validated DuckDB outputs were frozen: `reports/baseline/headline_metrics_duckdb.json` holds 34 headline metrics. On every build, `scripts/build_database.py` recomputes them in SQLite (`sql/05_headline_metrics.sql`) and writes [`reports/headline_reconciliation.md`](../reports/headline_reconciliation.md). It stops if a metric differs and the difference has no documented explanation.
+- These are associations, not causes. Late orders differ from on-time orders in region, category, seller and season. The review gap was checked within each region and with several groups removed, but this data can't prove cause and effect.
+- Survey timing matters. 74.5% of reviews on late orders were created before the order was delivered, so the survey seems to be sent around the promised date. The 2.0-star gap falls to 0.77 stars when only reviews written after delivery are compared (1,630 late orders).
+- Orders still in transit when the data ends (1,107 marked as shipped) are left out. They are probably late more often than average, so the last few months may understate lateness.
+- The data doesn't name the carrier, so transit delays can be traced to a route but not to a specific logistics company.
+- Delivery results are recorded per order. In the 1.3% of orders with several sellers, every seller gets the same result.
+- There is no cost or profit data. Order value is total sales value (items plus shipping) in BRL.
+
+## 8. Moving from DuckDB to SQLite
+
+The analysis was first built in DuckDB and then moved to SQLite. Before the move, the validated results were saved: `reports/baseline/headline_metrics_duckdb.json` holds 34 key numbers. Every SQLite build recalculates them (`sql/05_headline_metrics.sql`), writes the comparison to [reports/headline_reconciliation.md](../reports/headline_reconciliation.md), and stops if a number changes without a documented reason.
 
 | Check | Result |
 |---|---|
-| All `@check` validations (row counts, types, keys, FK, join cardinality, BRL totals) | pass |
-| 34 headline metrics vs DuckDB baseline | 33 identical; 1 explained (lane definition, below) |
-| Notebook text outputs vs the DuckDB-era run | identical (only a column header was renamed) |
-| Full result tables `reports/sql_results/*.md` vs baseline | same values, with the differences listed below |
+| All data checks (row counts, types, keys, links between tables, joins, money totals) | pass |
+| 34 key numbers compared with the DuckDB results | 33 identical, 1 explained (route definition, below) |
+| Notebook output compared with the DuckDB-era run | identical apart from one renamed column header |
+| All result tables in `reports/sql_results` compared with the earlier ones | same values, apart from the points below |
 
-Differences found and how they were handled:
-1. **Payment p99 (R$ 1,039.91 → 1,039.92) and the 7–10-instalment median payment (R$ 205.83 → 205.84).** The exact values are 1,039.9165 and 205.835. DuckDB had cut these percentiles to two decimals on its `DECIMAL(12,2)` columns instead of rounding; SQLite computes on REAL and rounds. The SQLite values are the correct ones.
-2. **Tie order in rankings.** Rows with equal *displayed* values (for example two categories at 8.05%, or sellers at 14 excess late orders) were in arbitrary order. All rankings now sort on the unrounded value with an ID tie-breaker. In Q4a this changed the 20th seller listed: fa1c13f… has the higher unrounded Wilson bound (7.0785% vs 7.0774%).
-3. **Shipping-lane grain (corrected during the Power BI reconciliation).** Q9b had counted (order, seller) pairs, so an order with two São Paulo sellers counted twice in SP → RJ. Lanes now use one row per (order, lane). SP → RJ: 8,274 → 8,188 delivered orders and 14.0% → 14.1% late; excess late orders stay ≈ 597. Seller-, category- and state-level results are unaffected.
-4. **Cosmetic.** Q1 dates now print without a time, and table names lost the `analytics.`/`raw.` schema prefixes. Q3e gained a column, and `02` gained a stored-type check.
+Differences and how they were handled:
 
-No conclusion changed.
+1. Two percentile values changed by one cent: the 99th percentile payment (R$ 1,039.91 to 1,039.92) and the median payment for 7 to 10 instalments (R$ 205.83 to 205.84). The exact values are 1,039.9165 and 205.835. DuckDB had cut them to two decimals instead of rounding, so the SQLite values are the correct ones.
+2. Rows that looked equal after rounding, such as two categories at 8.05% or sellers with 14 excess late orders, used to appear in an arbitrary order. Rankings now sort on the exact value. In question Q4a this changed the 20th seller on the list, because seller fa1c13f has a slightly higher exact value (7.0785% against 7.0774%).
+3. While checking Power BI against SQL, I found that the route analysis (Q9b) counted an order twice when it had two sellers from the same state. Routes now count each order once. São Paulo to Rio de Janeiro went from 8,274 to 8,188 delivered orders and from 14.0% to 14.1% late. The excess stays at about 597 late orders, and the seller, category and state results are not affected.
+4. Cosmetic changes: dates in Q1 no longer show a time, table names no longer have a schema prefix, Q3e has an extra column, and step 02 has an extra data-type check.
+
+None of the conclusions changed.

@@ -2,7 +2,7 @@
 
 This folder holds the nine original CSV files of the
 [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
-(licence CC BY-NC-SA 4.0). They are excluded from git by `.gitignore` and are **never modified** by the project.
+(licence CC BY-NC-SA 4.0). They are excluded from git by `.gitignore` and are never modified by the project.
 
 ## Get the files
 Automatic (Kaggle public endpoint):
@@ -11,7 +11,7 @@ python scripts/download_data.py
 ```
 
 Manual, if the automatic download fails:
-1. Open the Kaggle page above (a free account is required) and click **Download**.
+1. Open the Kaggle page above (a free account is required) and click Download.
 2. Extract `archive.zip` so that these files sit directly in `data/raw/`:
 
 | File | Rows (excl. header) |
