@@ -1,0 +1,43 @@
+# --- Data -------------------------------------------------------------
+# Raw Olist CSVs are downloaded, never committed (licence + size)
+data/raw/*
+!data/raw/README.md
+# Generated SQLite database and CSV model exports (rebuild with scripts/build_database.py)
+data/processed/*
+!data/processed/.gitkeep
+*.db
+*.db-journal
+*.zip
+
+# --- Credentials / secrets -------------------------------------------
+.env
+.env.*
+kaggle.json
+.kaggle/
+*.pem
+*.key
+secrets.*
+
+# --- Python / Jupyter environments ----------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.conda/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# --- Power BI local caches (keep the .pbix and the PBIP source) -------
+*.pbix.bak
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+# ADOMD.NET client downloaded for the DAX reconciliation
+tools/
+
+# --- OS / editors ----------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

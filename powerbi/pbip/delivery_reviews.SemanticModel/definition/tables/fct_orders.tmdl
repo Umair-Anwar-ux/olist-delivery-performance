@@ -1,0 +1,314 @@
+/// Main fact. Grain: one row per order (99,441). Flags are 1/0; blank = not applicable.
+table fct_orders
+	lineageTag: 37e9887e-40b5-5a77-8f9d-8760a36a90a5
+
+	/// Late / On time for delivery-KPI orders; other orders are 'Not in delivery KPI'.
+	column 'Delivery Outcome' = SWITCH ( TRUE (), ISBLANK ( fct_orders[is_late] ), "Not in delivery KPI", fct_orders[is_late] = 1, "Late", "On time" )
+		dataType: string
+		summarizeBy: none
+		lineageTag: 3fd55a82-6924-5fb5-b238-97110334e19a
+
+	/// Review score as a category label (1-5).
+	column 'Review Stars' = IF ( ISBLANK ( fct_orders[review_score] ), BLANK (), FORMAT ( fct_orders[review_score], "0" ) & " star" )
+		dataType: string
+		summarizeBy: none
+		lineageTag: 758cd885-a28f-5f14-8491-2bfb07b87c73
+
+	column order_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: order_id
+		lineageTag: 68d15ae2-0cbe-5269-9cc1-3dd753b3eb18
+
+	column customer_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: customer_id
+		lineageTag: aa59fefc-3da0-55d3-8981-ef4e91f98a4d
+
+	column customer_unique_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+		lineageTag: 5ba3693b-4c8d-561d-a493-89c92f200cac
+
+	column customer_state
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_state
+		lineageTag: a7291797-59cb-559a-be3f-e1e1a80b7c46
+
+	column customer_region
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_region
+		lineageTag: f7226884-8dc9-5673-9cad-f469da088041
+
+	column order_status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: order_status
+		lineageTag: 07eeabc2-0887-5551-b129-077d46e110e4
+
+	column status_group
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status_group
+		lineageTag: 865f60f6-e92e-5f54-81a4-e4c2dbc8438d
+
+	column order_purchase_timestamp
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: order_purchase_timestamp
+		lineageTag: 0e533d22-39cd-5f97-bd8d-9bd6e351145f
+
+	column order_approved_at
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: order_approved_at
+		lineageTag: cb6b4199-9c6c-5fcb-a39a-cde32c3ea215
+
+	column order_delivered_carrier_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: order_delivered_carrier_date
+		lineageTag: c528dcf0-9477-5de9-8f6b-3defbd6e041c
+
+	column order_delivered_customer_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: order_delivered_customer_date
+		lineageTag: 6b6a69f4-1fcf-56fe-99fb-f090cbcfe650
+
+	column order_estimated_delivery_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: order_estimated_delivery_date
+		lineageTag: 7eea1e50-7fe6-558b-ae53-0468e236fbf7
+
+	column purchase_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: purchase_date
+		lineageTag: 04854bf3-85b5-5216-a92e-ed63d52a1df2
+
+	column purchase_month
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: purchase_month
+		lineageTag: 90c28bfb-cb6f-5846-ae85-2131a85d1a97
+
+	column in_trend_window
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: in_trend_window
+		lineageTag: 351233b2-c87f-58d6-aa29-6e29a10b6e6c
+
+	column item_count
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: item_count
+		lineageTag: b5d4ecf0-524b-5bcc-8bfa-8e7268658e29
+
+	column seller_count
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: seller_count
+		lineageTag: c29bdada-39a1-5ca5-a0fb-2b884b3602d4
+
+	column category_count
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: category_count
+		lineageTag: 21803632-13a3-563a-a63f-02880b1a6d90
+
+	column has_items
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: has_items
+		lineageTag: ee5ca6cf-43f7-5e35-a9e8-e946c14f5d22
+
+	column items_price_brl
+		dataType: double
+		summarizeBy: none
+		sourceColumn: items_price_brl
+		lineageTag: c0df3505-d3b7-5267-a767-6269b5338e5a
+
+	column freight_brl
+		dataType: double
+		summarizeBy: none
+		sourceColumn: freight_brl
+		lineageTag: 6e42db21-2dfa-581a-8420-29b919548b67
+
+	column order_value_brl
+		dataType: double
+		summarizeBy: none
+		sourceColumn: order_value_brl
+		lineageTag: 2ab15f43-53cd-5b12-bfd7-d55ee41cad39
+
+	column latest_shipping_limit_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: latest_shipping_limit_date
+		lineageTag: 812be1f3-b8e8-5c15-934c-9d827938fd5d
+
+	column payment_count
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: payment_count
+		lineageTag: 83d296b3-6697-5f28-96d2-f28ea7ccba5a
+
+	column payment_value_brl
+		dataType: double
+		summarizeBy: none
+		sourceColumn: payment_value_brl
+		lineageTag: c757be16-d71e-54be-9e91-16b6d016c3c4
+
+	column main_payment_type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: main_payment_type
+		lineageTag: d04fcd3d-c185-5bd3-9487-dd700a8da1d0
+
+	column max_installments
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: max_installments
+		lineageTag: 6c0b59e2-8878-5368-aa92-ee946ba38432
+
+	column used_voucher
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: used_voucher
+		lineageTag: 195fe25a-8f4c-554b-8d33-df1f927d7e3a
+
+	column delivery_kpi_status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: delivery_kpi_status
+		lineageTag: 4de95b0e-20d2-5e7d-8190-800e7185b5ce
+
+	column is_delivery_kpi_eligible
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: is_delivery_kpi_eligible
+		lineageTag: 68205cb6-5b51-5778-b313-fdfed148ca8b
+
+	column is_late
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: is_late
+		lineageTag: a67b7c00-c5f3-57ea-b4ce-c0d2bfdcddbe
+
+	column is_late_timestamp_rule
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: is_late_timestamp_rule
+		lineageTag: 4ccac704-bf75-5573-bf28-05341f5f7f76
+
+	column days_vs_estimate
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: days_vs_estimate
+		lineageTag: a9786821-0a07-535e-8cc6-62dc2d88b703
+
+	column days_purchase_to_delivery
+		dataType: double
+		summarizeBy: none
+		sourceColumn: days_purchase_to_delivery
+		lineageTag: 395df2ef-fdd9-5343-96b6-1147a7bbc6d8
+
+	column days_purchase_to_estimate
+		dataType: double
+		summarizeBy: none
+		sourceColumn: days_purchase_to_estimate
+		lineageTag: e877ac1c-23b2-5b39-826c-51af5734c57a
+
+	column hours_purchase_to_approval
+		dataType: double
+		summarizeBy: none
+		sourceColumn: hours_purchase_to_approval
+		lineageTag: 6a935650-db1c-544f-aee7-2a038775c9fd
+
+	column days_approval_to_carrier
+		dataType: double
+		summarizeBy: none
+		sourceColumn: days_approval_to_carrier
+		lineageTag: 48a3e3d3-9efa-57f4-9bb9-88a81ca85471
+
+	column days_carrier_to_customer
+		dataType: double
+		summarizeBy: none
+		sourceColumn: days_carrier_to_customer
+		lineageTag: c5137008-c3ea-51bb-95cf-4bd8a948a781
+
+	column is_lifecycle_valid
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: is_lifecycle_valid
+		lineageTag: b01c9119-6a27-5b08-b01c-f55d27ffbd13
+
+	column is_carrier_handoff_late
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: is_carrier_handoff_late
+		lineageTag: fb21954f-9334-5193-afba-c1bc10b3de6b
+
+	column review_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: review_score
+		lineageTag: 575692dc-b9d9-5c1a-93d3-456dca76d084
+
+	column review_count
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: review_count
+		lineageTag: b38701f8-7dc9-515d-ae86-93080d7aff2a
+
+	column has_review
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: has_review
+		lineageTag: 2e6e2788-d36a-55e7-9807-57f0fa2a1f44
+
+	column review_has_comment
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: review_has_comment
+		lineageTag: 32a13e48-f5cf-5b02-a99e-026b71f39931
+
+	column review_creation_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: review_creation_date
+		lineageTag: 3c835d5b-b73c-53ca-b341-9a6fb0c25e01
+
+	column review_created_before_delivery
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: review_created_before_delivery
+		lineageTag: e8a684b7-f02b-503a-bc23-7e326b4866d6
+
+	partition fct_orders = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "fct_orders.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // SQLite NULLs are exported as empty cells: turn them into real nulls before typing
+				    EmptyToNull = Table.TransformColumns(Promoted, List.Transform(Table.ColumnNames(Promoted), (c) => {c, each if _ = "" then null else _})),
+				    Typed = Table.TransformColumnTypes(EmptyToNull, {{"order_id", type text}, {"customer_id", type text}, {"customer_unique_id", type text}, {"customer_state", type text}, {"customer_region", type text}, {"order_status", type text}, {"status_group", type text}, {"order_purchase_timestamp", type datetime}, {"order_approved_at", type datetime}, {"order_delivered_carrier_date", type datetime}, {"order_delivered_customer_date", type datetime}, {"order_estimated_delivery_date", type datetime}, {"purchase_date", type date}, {"purchase_month", type date}, {"in_trend_window", Int64.Type}, {"item_count", Int64.Type}, {"seller_count", Int64.Type}, {"category_count", Int64.Type}, {"has_items", Int64.Type}, {"items_price_brl", type number}, {"freight_brl", type number}, {"order_value_brl", type number}, {"latest_shipping_limit_date", type datetime}, {"payment_count", Int64.Type}, {"payment_value_brl", type number}, {"main_payment_type", type text}, {"max_installments", Int64.Type}, {"used_voucher", Int64.Type}, {"delivery_kpi_status", type text}, {"is_delivery_kpi_eligible", Int64.Type}, {"is_late", Int64.Type}, {"is_late_timestamp_rule", Int64.Type}, {"days_vs_estimate", Int64.Type}, {"days_purchase_to_delivery", type number}, {"days_purchase_to_estimate", type number}, {"hours_purchase_to_approval", type number}, {"days_approval_to_carrier", type number}, {"days_carrier_to_customer", type number}, {"is_lifecycle_valid", Int64.Type}, {"is_carrier_handoff_late", Int64.Type}, {"review_score", Int64.Type}, {"review_count", Int64.Type}, {"has_review", Int64.Type}, {"review_has_comment", Int64.Type}, {"review_creation_date", type datetime}, {"review_created_before_delivery", Int64.Type}}, "en-US")
+				in
+				    Typed

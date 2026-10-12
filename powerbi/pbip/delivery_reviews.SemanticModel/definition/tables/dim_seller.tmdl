@@ -1,0 +1,51 @@
+/// One row per seller with state and macro-region.
+table dim_seller
+	lineageTag: c7851799-6ab0-51fc-88bc-d9439b258d63
+
+	column seller_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: seller_id
+		lineageTag: ca09a921-2230-533a-a0a3-50139d336f67
+
+	column seller_zip_code_prefix
+		dataType: string
+		summarizeBy: none
+		sourceColumn: seller_zip_code_prefix
+		lineageTag: ecefe008-611c-5fbe-b9bf-f51413f3ae24
+
+	column seller_city
+		dataType: string
+		summarizeBy: none
+		sourceColumn: seller_city
+		lineageTag: e47754c1-ef03-5eb3-8c1e-8af3f32b99e7
+
+	column seller_state
+		dataType: string
+		summarizeBy: none
+		sourceColumn: seller_state
+		lineageTag: 6a0b286c-17b9-5c44-b54c-d9d5ede4b486
+
+	column seller_state_name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: seller_state_name
+		lineageTag: ac322060-dfce-5805-a220-819bccbee54f
+
+	column seller_region
+		dataType: string
+		summarizeBy: none
+		sourceColumn: seller_region
+		lineageTag: 3c7304a5-e90d-5d63-a34a-ce9cb5741d50
+
+	partition dim_seller = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "dim_seller.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // SQLite NULLs are exported as empty cells: turn them into real nulls before typing
+				    EmptyToNull = Table.TransformColumns(Promoted, List.Transform(Table.ColumnNames(Promoted), (c) => {c, each if _ = "" then null else _})),
+				    Typed = Table.TransformColumnTypes(EmptyToNull, {{"seller_id", type text}, {"seller_zip_code_prefix", type text}, {"seller_city", type text}, {"seller_state", type text}, {"seller_state_name", type text}, {"seller_region", type text}}, "en-US")
+				in
+				    Typed

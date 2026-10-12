@@ -1,0 +1,210 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "definitions_reconcile_b",
+  "position": {
+    "x": 20,
+    "y": 182,
+    "z": 11,
+    "width": 1240,
+    "height": 96,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Avg Review Score (On Time)"
+                }
+              },
+              "queryRef": "_Measures.Avg Review Score (On Time)",
+              "nativeQueryRef": "Avg Review Score (On Time)",
+              "displayName": "Avg review, on time"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Avg Review Score (Late)"
+                }
+              },
+              "queryRef": "_Measures.Avg Review Score (Late)",
+              "nativeQueryRef": "Avg Review Score (Late)",
+              "displayName": "Avg review, late"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Late Reviews Written Before Delivery %"
+                }
+              },
+              "queryRef": "_Measures.Late Reviews Written Before Delivery %",
+              "nativeQueryRef": "Late Reviews Written Before Delivery %",
+              "displayName": "Late reviews before delivery"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Median Hours Purchase to Approval"
+                }
+              },
+              "queryRef": "_Measures.Median Hours Purchase to Approval",
+              "nativeQueryRef": "Median Hours Purchase to Approval",
+              "displayName": "Median hours to approval"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Median Days Approval to Carrier"
+                }
+              },
+              "queryRef": "_Measures.Median Days Approval to Carrier",
+              "nativeQueryRef": "Median Days Approval to Carrier",
+              "displayName": "Median days to carrier"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Median Days Carrier to Customer"
+                }
+              },
+              "queryRef": "_Measures.Median Days Carrier to Customer",
+              "nativeQueryRef": "Median Days Carrier to Customer",
+              "displayName": "Median days carrier transit"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Median Days Purchase to Delivery"
+                }
+              },
+              "queryRef": "_Measures.Median Days Purchase to Delivery",
+              "nativeQueryRef": "Median Days Purchase to Delivery",
+              "displayName": "Median days to delivery"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "columnHeaders": [
+        {
+          "properties": {
+            "wordWrap": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9.0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9.0D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Reconciliation: reviews and lifecycle medians'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11.0D"
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#0B0B0B'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

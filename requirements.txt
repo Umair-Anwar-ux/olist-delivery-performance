@@ -1,0 +1,18 @@
+# Python 3.11+ (built and tested with Python 3.13.3 on Windows 10)
+# The database layer uses only the standard library (sqlite3, csv, json) - no server, no driver.
+
+# Notebook: independent metric validation and exploration
+pandas==2.3.1
+numpy==2.2.6
+matplotlib==3.10.3
+jupyter_core>=5.7          # run: python -m jupyter nbconvert --execute ...
+nbconvert==7.17.1
+nbclient>=0.10
+nbformat>=5.10
+ipykernel==7.3.0
+
+# Power BI tooling (Windows; optional - every step can be done by hand in Power BI Desktop)
+jsonschema>=4.20           # validate generated report files: build_powerbi_project.py --schemas
+pywinauto==0.6.9           # powerbi_automation.py: drive Power BI Desktop (refresh, export, save .pbix)
+pillow==11.3.0             # window screenshot
+pypdfium2>=4.30            # render the Power BI PDF export to PNG screenshots

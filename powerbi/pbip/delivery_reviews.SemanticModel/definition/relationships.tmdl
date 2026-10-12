@@ -1,0 +1,24 @@
+relationship 44324e1e-fd3a-5359-a643-c4a6be0164c5
+	fromColumn: fct_orders.purchase_date
+	toColumn: dim_date.date
+
+relationship f6e3145c-f373-57d6-ae42-c7723d20c9cd
+	fromColumn: fct_orders.customer_id
+	toColumn: dim_customer.customer_id
+
+relationship 64412683-bb82-51ac-a487-54a0bdbcf591
+	fromColumn: fct_order_items.order_id
+	toColumn: fct_orders.order_id
+	crossFilteringBehavior: bothDirections
+
+relationship e4a1ee5c-394a-5a75-a0ea-8a2e763fde0a
+	fromColumn: fct_order_items.product_id
+	toColumn: dim_product.product_id
+
+relationship bfa1e47a-7f6e-51e8-b042-5ee578668a28
+	fromColumn: fct_order_items.seller_id
+	toColumn: dim_seller.seller_id
+
+relationship 77cb406e-faea-59d3-b005-5aa4bebbf38a
+	fromColumn: fct_payments.order_id
+	toColumn: fct_orders.order_id

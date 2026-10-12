@@ -1,0 +1,57 @@
+/// One row per customer_id (one per order) with state and IBGE macro-region.
+table dim_customer
+	lineageTag: 2584eed4-68ab-5532-bf3a-c2227e9da82d
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+		lineageTag: a7097fae-309d-5316-b5d2-9b19e24485a6
+
+	column customer_unique_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+		lineageTag: 0cc396c8-4537-5002-b2a1-cfe66544d19b
+
+	column customer_zip_code_prefix
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_zip_code_prefix
+		lineageTag: 13d1735d-17c2-5998-abe1-049ff4cfe0a0
+
+	column customer_city
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_city
+		lineageTag: 9142a07f-c334-56cd-ac86-69cf9fd9f41c
+
+	column customer_state
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_state
+		lineageTag: 2934604f-8d6c-5816-9313-df3f51999694
+
+	column customer_state_name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_state_name
+		lineageTag: 2a16145f-a155-5dd8-8668-5698d310e65a
+
+	column customer_region
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_region
+		lineageTag: 5bb09592-2948-5e90-8f82-167c42737e4a
+
+	partition dim_customer = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "dim_customer.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // SQLite NULLs are exported as empty cells: turn them into real nulls before typing
+				    EmptyToNull = Table.TransformColumns(Promoted, List.Transform(Table.ColumnNames(Promoted), (c) => {c, each if _ = "" then null else _})),
+				    Typed = Table.TransformColumnTypes(EmptyToNull, {{"customer_id", type text}, {"customer_unique_id", type text}, {"customer_zip_code_prefix", type text}, {"customer_city", type text}, {"customer_state", type text}, {"customer_state_name", type text}, {"customer_region", type text}}, "en-US")
+				in
+				    Typed

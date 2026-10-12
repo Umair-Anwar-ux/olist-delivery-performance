@@ -1,0 +1,80 @@
+/// Calendar 2016-09-01 to 2018-12-31. in_trend_window = complete months Jan-2017..Aug-2018.
+table dim_date
+	lineageTag: 1ace7dba-b90b-5f10-9986-96d3706d2ab8
+	dataCategory: Time
+
+	column date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		isKey
+		summarizeBy: none
+		sourceColumn: date
+		lineageTag: fd1579d5-9ae1-5666-915a-6d4902d402df
+
+	column year
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: year
+		lineageTag: 511fc346-91ef-5f8b-a93a-1b5ad483f05f
+
+	column quarter
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: quarter
+		lineageTag: a9e547aa-d3b7-5e71-8783-30174452e2d4
+
+	column month
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: month
+		lineageTag: a852bbfe-7624-556f-8e92-c070188994a1
+
+	column year_month
+		dataType: string
+		sortByColumn: month_start
+		summarizeBy: none
+		sourceColumn: year_month
+		lineageTag: c6a5336a-444b-527f-a4b8-32d4f04aac08
+
+	column month_start
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: month_start
+		lineageTag: a5cc98f2-67d8-5769-b3b8-911385f28a98
+
+	column year_quarter
+		dataType: string
+		summarizeBy: none
+		sourceColumn: year_quarter
+		lineageTag: e2e1d1b0-d86e-5788-8038-239bfb81a7ba
+
+	column iso_day_of_week
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: iso_day_of_week
+		lineageTag: e809b7e3-492f-5800-9cba-e012ec286eb4
+
+	column day_name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: day_name
+		lineageTag: bcb5d8cd-143e-5aaa-8366-d9aabdadf629
+
+	column in_trend_window
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: in_trend_window
+		lineageTag: 52999e2f-e5bd-5b27-979c-923967f3367a
+
+	partition dim_date = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "dim_date.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // SQLite NULLs are exported as empty cells: turn them into real nulls before typing
+				    EmptyToNull = Table.TransformColumns(Promoted, List.Transform(Table.ColumnNames(Promoted), (c) => {c, each if _ = "" then null else _})),
+				    Typed = Table.TransformColumnTypes(EmptyToNull, {{"date", type date}, {"year", Int64.Type}, {"quarter", Int64.Type}, {"month", Int64.Type}, {"year_month", type text}, {"month_start", type date}, {"year_quarter", type text}, {"iso_day_of_week", Int64.Type}, {"day_name", type text}, {"in_trend_window", Int64.Type}}, "en-US")
+				in
+				    Typed

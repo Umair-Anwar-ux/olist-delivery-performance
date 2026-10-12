@@ -1,0 +1,222 @@
+/// Measure table. Every report metric is defined here (see docs/methodology.md).
+table _Measures
+	lineageTag: cd3904f9-cc62-5e04-b2eb-1248dd976afb
+
+	/// All orders placed, every status. Grain: order.
+	measure 'Total Orders' = COUNTROWS ( fct_orders )
+		formatString: #,0
+		displayFolder: 1 Volume
+		lineageTag: 42dde91a-6fb1-5005-9d74-38d6a3a0fcbd
+
+	/// Delivery-KPI population: status delivered AND a delivery timestamp (denominator of the late rate).
+	measure 'Delivered Orders' = CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_delivery_kpi_eligible] = 1 )
+		formatString: #,0
+		displayFolder: 1 Volume
+		lineageTag: b4f0e981-23f3-5628-a5e5-b5f8d4aa34e7
+
+	/// Total Orders restricted to the complete months Jan-2017..Aug-2018 (used by monthly charts).
+	measure 'Orders (Trend Window)' = CALCULATE ( [Total Orders], dim_date[in_trend_window] = 1 )
+		formatString: #,0
+		displayFolder: 1 Volume
+		lineageTag: 2c0e1da0-a163-5f2e-83f5-767fd631b39b
+
+	/// Delivered on a later calendar date than the estimated delivery date.
+	measure 'Late Orders' = CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_late] = 1 )
+		formatString: #,0
+		displayFolder: 2 Delivery
+		lineageTag: 100a857f-4938-5ba2-80f4-3ec1ad48432a
+
+	/// Delivered on or before the estimated date. Strict == so blank (not in KPI) is not counted as 0.
+	measure 'On-Time Orders' = CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_late] == 0 )
+		formatString: #,0
+		displayFolder: 2 Delivery
+		lineageTag: e9dba830-3c57-5608-a0fb-5014ffb549bf
+
+	/// Late Orders / Delivered Orders. Order grain.
+	measure 'Late Rate %' = DIVIDE ( [Late Orders], [Delivered Orders] )
+		formatString: 0.0%
+		displayFolder: 2 Delivery
+		lineageTag: 8aca2aca-6118-5a9f-a198-a8f841a7bb51
+
+	/// Sensitivity: delivery timestamp > estimated timestamp (midnight), so same-day deliveries count as late.
+	measure 'Late Rate % (Timestamp Rule)' = DIVIDE ( CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_late_timestamp_rule] = 1 ), [Delivered Orders] )
+		formatString: 0.0%
+		displayFolder: 2 Delivery
+		lineageTag: 718a96ee-1baf-5880-86a6-fe71b892a432
+
+	/// Late Rate % restricted to the complete months Jan-2017..Aug-2018.
+	measure 'Late Rate % (Trend Window)' = CALCULATE ( [Late Rate %], dim_date[in_trend_window] = 1 )
+		formatString: 0.0%
+		displayFolder: 2 Delivery
+		lineageTag: 83046acb-e67d-5e77-8a5f-2e5cfee799d1
+
+	/// Late rate for the same period ignoring customer, seller, product and lane filters.
+	measure 'Marketplace Late Rate %' = CALCULATE ( [Late Rate %], REMOVEFILTERS ( dim_customer ), REMOVEFILTERS ( dim_seller ), REMOVEFILTERS ( dim_product ), REMOVEFILTERS ( fct_order_items ) )
+		formatString: 0.0%
+		displayFolder: 2 Delivery
+		lineageTag: 899a79e9-af5b-5f7a-9c17-385cc7465955
+
+	/// Late orders above what the group would have at the marketplace rate (rate x volume).
+	measure 'Excess Late Orders' = [Late Orders] - [Delivered Orders] * [Marketplace Late Rate %]
+		formatString: #,0
+		displayFolder: 2 Delivery
+		lineageTag: a485900a-fb72-5489-be6c-71d12eadc9b7
+
+	/// Share of delivered orders handed to the carrier after the seller shipping deadline.
+	measure 'Carrier Handoff Late %' = DIVIDE ( CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_carrier_handoff_late] = 1 ), CALCULATE ( COUNTROWS ( fct_orders ), NOT ISBLANK ( fct_orders[is_carrier_handoff_late] ) ) )
+		formatString: 0.0%
+		displayFolder: 2 Delivery
+		lineageTag: 57432628-3e28-5d03-b52b-973d0ee434c1
+
+	/// Median hours from purchase to payment approval (delivered orders, valid sequence).
+	measure 'Median Hours Purchase to Approval' = MEDIAN ( fct_orders[hours_purchase_to_approval] )
+		formatString: 0.0
+		displayFolder: 3 Lifecycle
+		lineageTag: b25705f6-72fe-5ed9-b89e-18e14f19945a
+
+	/// Median days from approval to carrier hand-off (delivered orders, valid sequence).
+	measure 'Median Days Approval to Carrier' = MEDIAN ( fct_orders[days_approval_to_carrier] )
+		formatString: 0.0
+		displayFolder: 3 Lifecycle
+		lineageTag: bd687310-fc56-55e0-8aff-b88d44a94dc3
+
+	/// Median days in carrier transit (delivered orders, valid sequence).
+	measure 'Median Days Carrier to Customer' = MEDIAN ( fct_orders[days_carrier_to_customer] )
+		formatString: 0.0
+		displayFolder: 3 Lifecycle
+		lineageTag: faf22907-6db0-5956-9822-358dc184d0b5
+
+	/// Median approval -> carrier days over orders whose three stage timestamps are all present and in order.
+	measure 'Median Days Approval to Carrier (Valid Lifecycle)' = CALCULATE ( MEDIAN ( fct_orders[days_approval_to_carrier] ), fct_orders[is_lifecycle_valid] = 1 )
+		formatString: 0.0
+		displayFolder: 3 Lifecycle
+		lineageTag: 565e6528-2d13-5c29-a37c-b7e949b1f3ba
+
+	/// Median carrier -> customer days over orders whose three stage timestamps are all present and in order.
+	measure 'Median Days Carrier to Customer (Valid Lifecycle)' = CALCULATE ( MEDIAN ( fct_orders[days_carrier_to_customer] ), fct_orders[is_lifecycle_valid] = 1 )
+		formatString: 0.0
+		displayFolder: 3 Lifecycle
+		lineageTag: fd2b09d2-2711-516c-8547-23eb9e50faf9
+
+	/// Median days from purchase to delivery (delivery-KPI orders).
+	measure 'Median Days Purchase to Delivery' = MEDIAN ( fct_orders[days_purchase_to_delivery] )
+		formatString: 0.0
+		displayFolder: 3 Lifecycle
+		lineageTag: 7481e97d-6888-57fd-b7fd-15e7843dc0d7
+
+	/// Orders with a review (one review per order).
+	measure 'Reviewed Orders' = COUNT ( fct_orders[review_score] )
+		formatString: #,0
+		displayFolder: 4 Reviews
+		lineageTag: 5f2de800-c713-55fb-b5c8-09058e10a609
+
+	/// Average 1-5 score over reviewed orders in the current filter (all statuses).
+	measure 'Avg Review Score' = AVERAGE ( fct_orders[review_score] )
+		formatString: 0.00
+		displayFolder: 4 Reviews
+		lineageTag: 28ac3b8b-4d72-5d50-b013-a31f596bb112
+
+	/// Average score of reviewed delivery-KPI orders.
+	measure 'Avg Review Score (Delivered)' = CALCULATE ( [Avg Review Score], fct_orders[is_delivery_kpi_eligible] = 1 )
+		formatString: 0.00
+		displayFolder: 4 Reviews
+		lineageTag: 5a3e1995-1709-57bd-b0d9-7f5d9d33affa
+
+	/// Average score of reviewed on-time orders.
+	measure 'Avg Review Score (On Time)' = CALCULATE ( [Avg Review Score], fct_orders[is_late] == 0 )
+		formatString: 0.00
+		displayFolder: 4 Reviews
+		lineageTag: 5f3ddb02-be04-5f19-8970-672e84ac47d3
+
+	/// Average score of reviewed late orders.
+	measure 'Avg Review Score (Late)' = CALCULATE ( [Avg Review Score], fct_orders[is_late] = 1 )
+		formatString: 0.00
+		displayFolder: 4 Reviews
+		lineageTag: 5647cb1e-9a13-5f37-ba6f-c48173b3fcc2
+
+	/// Association only - not proof that delay causes the lower score.
+	measure 'Review Gap (Late - On Time)' = [Avg Review Score (Late)] - [Avg Review Score (On Time)]
+		formatString: 0.00
+		displayFolder: 4 Reviews
+		lineageTag: e0ee2f65-44e0-512c-be4a-8103f7a7184b
+
+	/// Share of reviewed orders with 1 or 2 stars.
+	measure 'Low Review Share %' = DIVIDE ( CALCULATE ( [Reviewed Orders], fct_orders[review_score] <= 2 ), [Reviewed Orders] )
+		formatString: 0.0%
+		displayFolder: 4 Reviews
+		lineageTag: 13023514-9a57-5375-b468-792a763568d6
+
+	/// Review-timing caveat: share of late-order reviews created before the parcel arrived.
+	measure 'Late Reviews Written Before Delivery %' = DIVIDE ( CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_late] = 1, fct_orders[review_created_before_delivery] = 1 ), CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[is_late] = 1, fct_orders[has_review] = 1 ) )
+		formatString: 0.0%
+		displayFolder: 4 Reviews
+		lineageTag: c0f13c21-f0f1-5281-9dd5-ef073b566ba9
+
+	/// Average score of late orders whose review was written after delivery.
+	measure 'Avg Review Score (Late, Written After Delivery)' = CALCULATE ( [Avg Review Score], fct_orders[is_late] = 1, fct_orders[review_created_before_delivery] == 0 )
+		formatString: 0.00
+		displayFolder: 4 Reviews
+		lineageTag: 9bd12ba0-0353-5c21-92aa-792c63b04a32
+
+	/// Status canceled.
+	measure 'Canceled Orders' = CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[order_status] = "canceled" )
+		formatString: #,0
+		displayFolder: 5 Status
+		lineageTag: 1af47a8c-b358-564f-afd6-1c53af9249b1
+
+	/// Status unavailable.
+	measure 'Unavailable Orders' = CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[order_status] = "unavailable" )
+		formatString: #,0
+		displayFolder: 5 Status
+		lineageTag: ecbba8c0-903c-530f-b893-851edd152307
+
+	/// (Canceled + unavailable) / all orders.
+	measure 'Canceled or Unavailable %' = DIVIDE ( [Canceled Orders] + [Unavailable Orders], [Total Orders] )
+		formatString: 0.00%
+		displayFolder: 5 Status
+		lineageTag: 362595d6-63f1-58e8-92cb-cd3967ce9353
+
+	/// Canceled or Unavailable % restricted to complete months.
+	measure 'Canceled or Unavailable % (Trend Window)' = CALCULATE ( [Canceled or Unavailable %], dim_date[in_trend_window] = 1 )
+		formatString: 0.00%
+		displayFolder: 5 Status
+		lineageTag: 2de5b4ab-30d6-575c-a3f8-0c93e8799904
+
+	/// Item price + freight of delivered orders, BRL. Gross merchandise value - NOT profit or Olist revenue.
+	measure 'Delivered Order Value (BRL)' = CALCULATE ( SUM ( fct_orders[order_value_brl] ), fct_orders[status_group] = "delivered" )
+		formatString: R$ #,0
+		displayFolder: 6 Value
+		lineageTag: 71896d71-1df8-596f-892f-bf6afaa1b391
+
+	/// Item price + freight at item grain - use under category/seller filters.
+	measure 'Item Value (BRL)' = SUM ( fct_order_items[item_value_brl] )
+		formatString: R$ #,0
+		displayFolder: 6 Value
+		lineageTag: 85300753-c78e-58b8-b991-0f4fdb85c218
+
+	/// Delivered order value / delivered orders.
+	measure 'Avg Delivered Order Value (BRL)' = DIVIDE ( [Delivered Order Value (BRL)], CALCULATE ( COUNTROWS ( fct_orders ), fct_orders[status_group] = "delivered" ) )
+		formatString: R$ #,0.00
+		displayFolder: 6 Value
+		lineageTag: 023d2944-b04e-5bf6-b730-45de7b6741ae
+
+	/// Sum of payment records, BRL (can include instalment interest and vouchers).
+	measure 'Payments (BRL)' = SUM ( fct_payments[payment_value_brl] )
+		formatString: R$ #,0
+		displayFolder: 6 Value
+		lineageTag: 2b5c51ee-c4e5-54e7-8821-ae72ea21299f
+
+	column Value
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Value
+		lineageTag: e33f59f4-b866-520e-8d19-da21a13f2e6e
+
+	partition _Measures = m
+		mode: import
+		source =
+				let
+				    Source = #table(type table [Value = Int64.Type], {})
+				in
+				    Source

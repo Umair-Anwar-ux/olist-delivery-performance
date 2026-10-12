@@ -1,0 +1,192 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "definitions_text",
+  "position": {
+    "x": 20,
+    "y": 290,
+    "z": 12,
+    "width": 1240,
+    "height": 420,
+    "tabOrder": 12
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Grain. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "fct_orders has one row per order; order measures count its rows. Category, seller and lane filters reach orders through the order<->item relationship, so an order is counted once.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Delivered orders (delivery-KPI population). ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "Status = delivered AND a customer delivery timestamp (96,470 of 99,441). Shipped, canceled, unavailable, invoiced, processing, created, approved and 8 delivered orders without a date are excluded.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Late delivery. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "Delivered on a later CALENDAR DATE than the estimated delivery date. The estimate is stored at midnight (a date, not a time), so the literal timestamp rule - shown as Late Rate % (Timestamp Rule) - also counts same-day deliveries as late.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Excess late orders. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "Late orders - delivered orders x marketplace late rate: how many late orders a group adds above the average. Used to prioritise groups because it combines rate and volume.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Lifecycle stages. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "Medians over delivered orders whose two timestamps exist and are in order (1,350 orders handed to the carrier before approval and 23 delivered before carrier hand-off are excluded from those stages).",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Reviews. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "One review per order (most recently answered). Averages ignore orders without a review. Late vs on-time differences are associations; many late-order reviews are written before delivery.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Order value. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "Item price + freight in BRL for delivered orders. It is gross merchandise value - not Olist revenue and not profit (the dataset has no cost data). Payments (BRL) can differ (instalment interest, vouchers).",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Refresh. ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "Rebuild the CSVs with python scripts/build_database.py, then Home > Refresh. The DataFolder parameter (Transform data > Edit parameters) points to data/processed/.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#0B0B0B"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

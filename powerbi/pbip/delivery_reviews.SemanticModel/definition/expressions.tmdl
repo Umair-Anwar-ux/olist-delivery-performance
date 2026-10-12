@@ -1,0 +1,3 @@
+/// Folder holding the CSVs exported by scripts/build_database.py (must end with a backslash).
+expression DataFolder = "C:\Users\hp\Desktop\data analysis Project\data\processed\" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+	lineageTag: 3220f08e-fb04-5df8-830b-45e99ba66c46

@@ -1,0 +1,69 @@
+/// One row per product with English category.
+table dim_product
+	lineageTag: 95882716-965f-5d78-b258-a053ef94fe81
+
+	column product_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: product_id
+		lineageTag: eea48a1e-41ee-5155-ad2d-3fd94940dcc2
+
+	column category_pt
+		dataType: string
+		summarizeBy: none
+		sourceColumn: category_pt
+		lineageTag: 46b91e78-15f7-50c7-83ea-6440ba6df455
+
+	column category
+		dataType: string
+		summarizeBy: none
+		sourceColumn: category
+		lineageTag: db617766-7d78-5ca3-abaf-80f77337d85d
+
+	column category_translation_source
+		dataType: string
+		summarizeBy: none
+		sourceColumn: category_translation_source
+		lineageTag: d0ffd742-aa99-584e-9948-2c0e2698addd
+
+	column product_photos_qty
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: product_photos_qty
+		lineageTag: 3be4f4df-bcab-5a39-9ef4-077cfff43ba3
+
+	column product_weight_g
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: product_weight_g
+		lineageTag: 0566ccad-9b83-5925-b49a-a3ac91fe161c
+
+	column product_length_cm
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: product_length_cm
+		lineageTag: 68b3a2f0-1b41-587c-a584-b5553cb1f927
+
+	column product_height_cm
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: product_height_cm
+		lineageTag: 147c50cc-d8f4-58e7-8569-7a161bc005ba
+
+	column product_width_cm
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: product_width_cm
+		lineageTag: d81fdd05-a04f-5dff-b83c-c357cc899dd0
+
+	partition dim_product = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "dim_product.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // SQLite NULLs are exported as empty cells: turn them into real nulls before typing
+				    EmptyToNull = Table.TransformColumns(Promoted, List.Transform(Table.ColumnNames(Promoted), (c) => {c, each if _ = "" then null else _})),
+				    Typed = Table.TransformColumnTypes(EmptyToNull, {{"product_id", type text}, {"category_pt", type text}, {"category", type text}, {"category_translation_source", type text}, {"product_photos_qty", Int64.Type}, {"product_weight_g", Int64.Type}, {"product_length_cm", Int64.Type}, {"product_height_cm", Int64.Type}, {"product_width_cm", Int64.Type}}, "en-US")
+				in
+				    Typed

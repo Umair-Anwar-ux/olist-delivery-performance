@@ -1,0 +1,46 @@
+/// Grain: one row per payment record (103,886).
+table fct_payments
+	lineageTag: 0db6e025-6263-5db4-99cc-d6a04d96e782
+
+	column order_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: order_id
+		lineageTag: ee56493d-6d75-5afb-9931-525d3cf37fc7
+
+	column payment_sequential
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: payment_sequential
+		lineageTag: 892cd93a-046c-54e8-abd2-7fe291d7c3fe
+
+	column payment_type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: payment_type
+		lineageTag: 7a284080-74d9-5d65-b179-39bb47c849e6
+
+	column payment_installments
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: payment_installments
+		lineageTag: 6b848ed2-a94f-584c-8efc-782652839f1a
+
+	column payment_value_brl
+		dataType: double
+		summarizeBy: none
+		sourceColumn: payment_value_brl
+		lineageTag: ed701b8b-8e67-57e9-ba1b-b9ca91605446
+
+	partition fct_payments = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "fct_payments.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // SQLite NULLs are exported as empty cells: turn them into real nulls before typing
+				    EmptyToNull = Table.TransformColumns(Promoted, List.Transform(Table.ColumnNames(Promoted), (c) => {c, each if _ = "" then null else _})),
+				    Typed = Table.TransformColumnTypes(EmptyToNull, {{"order_id", type text}, {"payment_sequential", Int64.Type}, {"payment_type", type text}, {"payment_installments", Int64.Type}, {"payment_value_brl", type number}}, "en-US")
+				in
+				    Typed
